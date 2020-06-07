@@ -39,8 +39,8 @@ namespace excel汇总
                     
 
                     int i = 0, j = 0;
-                    string name = "1", unit = "1";
-                    double amount = 1, unitPrice = 1;
+                    string name = "1", unit = "1",sort="1";
+                    double amount = 0, unitPrice = 0;
                     Excel.Worksheet thesheet = mybook.Worksheets[1];
                     int count = thesheet.UsedRange.Rows.Count;
                     try
@@ -51,17 +51,19 @@ namespace excel汇总
                             thesheet.Activate();
 
                             count = thesheet.UsedRange.Rows.Count;
-                            for (j = 4; j <= count; j++)
+                            for (j = 4; j <= count; j++)//count
                             {
 
                                 name = thesheet.Cells[j, "B"].Value;
-                                if (name == null)
+                                if (name==null)
                                     break;
+                               
+                                    
                                 unit = thesheet.Cells[j, "C"].Value;
                                 amount = thesheet.Cells[j, "J"].Value;
                                 unitPrice = thesheet.Cells[j, "H"].Value;
-
-                                eo.WriteToExcel(name, unit, amount, unitPrice, mybook, mysheet);
+                                sort = thesheet.Cells[j, "A"].Value;
+                                eo.WriteToExcel(name, unit, amount, unitPrice,sort, mybook, mysheet);
                             }
                             mybook.Save();
                             Console.WriteLine("  第{0}个：" + count, i);
@@ -84,7 +86,7 @@ namespace excel汇总
                 }
                 else if (option == "2")
                 {
-                    option =eo.CombineSame(fullname);
+                    option =eo.CombineSame1(fullname);
                 }
             }
             return;
@@ -120,6 +122,8 @@ namespace excel汇总
                 //worksheet.Cells[1, 2].numberFormatting = "@";
                 worksheet.Cells[1, 3] = "数量";
                 worksheet.Cells[1, 4] = "单价";
+                worksheet.Cells[1, 5] = "分类";
+                worksheet.Cells[1, 6] = "总价";
 
 
 
@@ -131,7 +135,7 @@ namespace excel汇总
                 //app.Quit();
 
             }
-            internal void WriteToExcel(string name, string unit, double amount, double unitPrice, Excel.Workbook mybook, Worksheet mysheet)
+            internal void WriteToExcel(string name, string unit, double amount, double unitPrice, string sort,Workbook mybook, Worksheet mysheet)
             {
                 //open
                 //mysheet.Activate();
@@ -141,6 +145,10 @@ namespace excel汇总
                 mysheet.Cells[maxrow, 2] = unit;
                 mysheet.Cells[maxrow, 3] = amount;
                 mysheet.Cells[maxrow, 4] = unitPrice;
+                if(sort==null)
+                    mysheet.Cells[maxrow, 5] = mysheet.Cells[maxrow-1,5];
+                else
+                    mysheet.Cells[maxrow, 5] = sort;
 
                 //mybook.Save();
                 //mybook.Close(false, Type.Missing, Type.Missing);
@@ -153,32 +161,43 @@ namespace excel汇总
                 app.Visible = false;
                 Excel.Workbook mybook = app.Workbooks.Open(fullname);
                 Excel.Worksheet mysheet = mybook.Sheets[mybook.Sheets.Count];
-
+                int i = 0, k = 0;
                 try
                 {
-                    string tempName = "";
-                    int count = mysheet.UsedRange.Rows.Count, tempCount = 0;
-                    for (int i = 1; i <= count; i++)
+                    string tempName = "",name="",tempUnit="",unit="";
+                    double temPrice = 0,price=0,amount=0,tempAmount=0;
+                    int count = mysheet.UsedRange.Rows.Count;
+                    for (i = 2; i <= count; i++)
                     {
-                        tempName = mysheet.Cells[i, "A"].Value;
-                        tempCount = i;
-                        for (int k = i + 1; k <= count; k++)
+                        name = mysheet.Cells[i, "A"].Value;
+                        //price = mysheet.Cells[i, "D"].Value;
+                        price = mysheet.Cells[i, "D"].Value;
+                        unit = mysheet.Cells[i, "B"].Value;
+                        //tempCount = i;
+                        for (k = i + 1; k <= count; k++)
                         {
-                            if (mysheet.Cells[k, "A"].Value == tempName)
-                            {
-                                mysheet.Cells[tempCount, "C"] = mysheet.Cells[tempCount, "C"].Value+mysheet.Cells[k, "C"].Value;
-                                mysheet.Rows[k].Delete();
-                                count--;
-                            }
-                            //if (mysheet.Cells[k, "A"].Value == null)
+                            tempName = mysheet.Cells[k, "A"].Value;
+                            temPrice = mysheet.Cells[k, "D"].Value;
+                            tempUnit = mysheet.Cells[k, "B"].Value;
+                            tempAmount = mysheet.Cells[k, "C"].Value;
+                            //if (tempName == null)
                             //    break;
+                            if (tempName==name&& temPrice == price && unit == tempUnit)
+                            {
+
+                                mysheet.Cells[i, "C"] = mysheet.Cells[i, "C"].Value + tempAmount;
+                                    mysheet.Rows[k].Delete();
+                                    count--;
+                                
+                            }
+                           
                         }
                         Console.WriteLine("已合并{0}个", i);
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.Message);
+                    Console.WriteLine(e.Message+"坐标({0},{1})",i,k);
                 }
                 finally
                 {
@@ -190,11 +209,68 @@ namespace excel汇总
                     option = Console.ReadLine();
                 }
                 return option;
+            }
+            internal string CombineSame1(string fullname)
+            {
+                string option = null;
+                Excel.Application app = new Excel.Application();
+                app.Visible = false;
+                Excel.Workbook mybook = app.Workbooks.Open(fullname);
+                Excel.Worksheet mysheet = mybook.Sheets[mybook.Sheets.Count];
+                int i = 0, k = 0;
+                try
+                {
+                    string tempName = "", name = "", tempUnit = "", unit = "";
+                    double unitPrice = 0, price = 0, amount = 0, tempAmount = 0;
+                    int count = mysheet.UsedRange.Rows.Count;
+                    for (i = 2; i <= count; i++)//2 count
+                    {
+                        name = mysheet.Cells[i, "A"].Value;
+                        //price = mysheet.Cells[i, "D"].Value;
+                        unitPrice= mysheet.Cells[i, "D"].Value;
+                        amount = mysheet.Cells[i, "C"].Value;
+                        price = unitPrice * amount;
+                        
+                        //tempCount = i;
+                        for (k = i + 1; k <= count; k++)//count
+                        {
+                            tempName = mysheet.Cells[k, "A"].Value;
+                            //if (tempName == null)
+                            //    break;
+                            if (tempName == name)
+                            {
+                                tempAmount = mysheet.Cells[k, "C"].Value;
+                                unitPrice = mysheet.Cells[k, "D"].Value;
+                                amount += tempAmount;
+                                price += tempAmount * unitPrice;
 
+                                
+                                mysheet.Rows[k].Delete();
+                                count--;
 
+                            }
 
-
-
+                        }
+                        mysheet.Cells[i, "F"] = price;
+                        mysheet.Cells[i, "C"] = amount;
+                        mysheet.Cells[i, "D"] = price/amount;
+                        Console.WriteLine("已合并{0}个", i);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message + "坐标({0},{1})", i, k);
+                }
+                finally
+                {
+                    mybook.Save();
+                    mybook.Close(false, Type.Missing, Type.Missing);
+                    mybook = null;
+                    app.Quit();
+                    Console.WriteLine("系统功能\n1.将前面Sheet汇总到一张\n2.将汇总的表格合并相同项。\n3.退出");
+                    option = Console.ReadLine();
+                }
+                return option;
             }
         }
     }
